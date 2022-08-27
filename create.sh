@@ -1,4 +1,6 @@
 
+mkdir {dumps,logs}
+
 ## Creacion del ambiente
 python -m pip install venv
 python -m venv grafana2uim

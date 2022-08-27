@@ -2,42 +2,56 @@
 # -*- coding: utf-8 -*-
 
 from flask import Flask, jsonify, abort, make_response, request
+import json
+import logging
 
+
+## Config
+dump = 'dumps/json_file.txt'
+log = 'logs/grafana2uim.log'
+logging.basicConfig(filename=log,
+                    format='%(asctime)s %(message)s',
+                    filemode='w')
+  
+# Start logger
+logger=logging.getLogger()
+  
+# DEBUG
+logger.setLevel(logging.DEBUG)
+
+
+## Inicio de aplicacion
 app = Flask(__name__)
+logger.debug("Iniciando...")
 
 
-tasks = [
-    {
-            'id': 1,
-            'title': u'Buy groceries',
-            'description': u'Milk, Cheese, Pizza, Fruit, Tylenol', 
-            'done': False
-        },
-    {
-            'id': 2,
-            'title': u'Learn Python',
-            'description': u'Need to find a good Python tutorial on the web', 
-            'done': False
-        }
-]
+def write_to_file ( json_obj ):
+    a = [ json_obj['title'],
+          json_obj['ruleName'], 
+          json_obj['ruleId'], 
+          json_obj['state'], 
+          json_obj['evalMatches'][0]['value']
 
-@app.route('/todo/api/v1.0/tasks',methods=['GET'])
-def get_tasks():
-    return jsonify({'tasks':tasks})
+        ]
 
-@app.route('/todo/api/v1.0/tasks/<int:task_id>',methods=['GET'])
-def get_task(task_id):
-    task = [task for task in tasks if task['id'] == task_id]
-    if len(task) == 0:
-        abort(404)
-    return jsonify({'task':task[0]})
+    text = ','.join( map(str,a) ) 
 
-@app.route('/todo/api/v1.0/tasks',methods=['POST'])
+    file = open(dump, "w") 
+    file.write( text + "\n")
+    file.close()
+    logger.debug("Data dumped to " + dump)
+
+
+## Recibe JSON
+@app.route('/api/v1.0/grafana/task',methods=['POST'])
 def create_task():
-    if not request.json or not 'title' in request.json:
+    #if not request.json or not 'title' in request.json:
+    if not request.json:
         abort(400)
-
-    return jsonify({'task_id':1}),201
+    
+    write_to_file ( request.json )
+    logger.debug("Request recibido")
+    return jsonify({'status':'OK'}),201
 
 
 @app.errorhandler(404)
@@ -47,7 +61,7 @@ def not_found(error):
 
 @app.route('/')
 def index():
-    return "Hello world"
+    return "Grafana to UIM - Integracion de alarmas"
 
 if __name__ == '__main__':
     app.run(debug=True)
